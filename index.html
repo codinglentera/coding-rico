@@ -2,113 +2,16 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <title>Tetris JS</title>
-  <style>
-    body {
-      background: #111;
-      color: white;
-      font-family: Arial, sans-serif;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-    }
-
-    canvas {
-      background: #000;
-      border: 3px solid #fff;
-    }
-
-    .info {
-      margin-left: 20px;
-    }
-  </style>
+  <title>Game Catur</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<canvas id="tetris" width="240" height="400"></canvas>
+<h1>♟ Game Catur</h1>
+<p id="turn">Giliran: Putih</p>
 
-<div class="info">
-  <h2>TETRIS</h2>
-  <p>⬅️ ➡️ : Gerak</p>
-  <p>⬆️ : Putar</p>
-  <p>⬇️ : Turun</p>
-  <p>Score: <span id="score">0</span></p>
-</div>
+<div id="chessboard"></div>
 
-<script>
-const canvas = document.getElementById('tetris');
-const ctx = canvas.getContext('2d');
-ctx.scale(20, 20);
-
-const arena = createMatrix(12, 20);
-const colors = [
-  null,
-  '#FF0D72',
-  '#0DC2FF',
-  '#0DFF72',
-  '#F538FF',
-  '#FF8E0D',
-  '#FFE138',
-  '#3877FF',
-];
-
-const player = {
-  pos: {x: 0, y: 0},
-  matrix: null,
-  score: 0
-};
-
-function createMatrix(w, h) {
-  const matrix = [];
-  while (h--) matrix.push(new Array(w).fill(0));
-  return matrix;
-}
-
-function createPiece(type) {
-  if (type === 'T') return [[0,0,0],[1,1,1],[0,1,0]];
-  if (type === 'O') return [[2,2],[2,2]];
-  if (type === 'L') return [[0,3,0],[0,3,0],[0,3,3]];
-  if (type === 'J') return [[0,4,0],[0,4,0],[4,4,0]];
-  if (type === 'I') return [[0,5,0,0],[0,5,0,0],[0,5,0,0],[0,5,0,0]];
-  if (type === 'S') return [[0,6,6],[6,6,0],[0,0,0]];
-  if (type === 'Z') return [[7,7,0],[0,7,7],[0,0,0]];
-}
-
-function drawMatrix(matrix, offset) {
-  matrix.forEach((row, y) => {
-    row.forEach((value, x) => {
-      if (value !== 0) {
-        ctx.fillStyle = colors[value];
-        ctx.fillRect(x + offset.x, y + offset.y, 1, 1);
-      }
-    });
-  });
-}
-
-function merge(arena, player) {
-  player.matrix.forEach((row, y) => {
-    row.forEach((value, x) => {
-      if (value !== 0) {
-        arena[y + player.pos.y][x + player.pos.x] = value;
-      }
-    });
-  });
-}
-
-function collide(arena, player) {
-  const m = player.matrix;
-  const o = player.pos;
-  for (let y = 0; y < m.length; ++y) {
-    for (let x = 0; x < m[y].length; ++x) {
-      if (m[y][x] !== 0 &&
-         (arena[y + o.y] &&
-          arena[y + o.y][x + o.x]) !== 0) {
-        return true;
-      }
-    }
-  }
-  return false;
-}
-
-function rotate(matrix) {
+<script src="script.js"></script>
+</body>
+</html>
