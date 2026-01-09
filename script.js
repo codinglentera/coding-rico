@@ -1,78 +1,381 @@
-:root{
-  --bg:#0b1220;
-  --panel:#0f1724;
-  --accent:#65a9ff;
-  --cell:#0b1228;
-  --grid-border:#0b1228;
-  --text:#e6eef8;
-  --muted:#9fb2cf;
-  --size:28px;
-}
+// Tetris — Vanilla JS
+(() => {
+  const width = 10;
+  const height = 20;
+  const gridSize = width * height;
+  const grid = document.getElementById('grid');
+  const nextGrid = document.getElementById('next-grid');
+  const scoreEl = document.getElementById('score');
+  const levelEl = document.getElementById('level');
+  const startBtn = document.getElementById('start');
+  const pauseBtn = document.getElementById('pause');
+  const message = document.getElementById('message');
 
-*{box-sizing:border-box}
-html,body{height:100%;margin:0;font-family:Inter, Roboto, system-ui, Arial, sans-serif;background:linear-gradient(180deg,#041022 0%, #071a2a 100%);color:var(--text)}
-.wrap{max-width:980px;margin:30px auto;padding:20px}
-h1{text-align:center;margin:0 0 18px;font-weight:600}
+  let squares = [];
+  let miniSquares = [];
+  let currentPosition = 3;
+  let currentRotation = 0;
+  let timerId = null;
+  let score = 0;
+  let level = 1;
+  let linesCleared = 0;
+  let isPaused = false;
+  let gameOver = false;
 
-.game-area{display:flex;gap:18px;align-items:flex-start;justify-content:center}
-.grid{
-  display:grid;
-  grid-template-columns:repeat(10,var(--size));
-  grid-auto-rows:var(--size);
-  gap:2px;
-  background:linear-gradient(180deg,#081426,#04101a);
-  padding:6px;
-  border-radius:8px;
-  box-shadow:0 12px 30px rgba(2,8,20,0.6);
-  width:calc(10 * var(--size) + 2px*9 + 12px);
-}
-.grid .cell{
-  width:var(--size);
-  height:var(--size);
-  background:var(--cell);
-  border-radius:4px;
-  transition:background 120ms, box-shadow 120ms;
-  box-shadow: inset 0 -4px 8px rgba(2,8,18,0.4);
-  border:1px solid rgba(255,255,255,0.03);
-}
+  // create main grid cells
+  for (let i = 0; i < gridSize; i++) {
+    const cell = document.createElement('div');
+    cell.classList.add('cell');
+    grid.appendChild(cell);
+    squares.push(cell);
+  }
 
-.sidebar{width:240px;display:flex;flex-direction:column;gap:12px}
-.panel{background:var(--panel);padding:12px;border-radius:8px;box-shadow:0 8px 18px rgba(2,8,20,0.5)}
-.panel h2{margin:0 0 8px;font-size:14px;color:var(--muted)}
-#score,#level{font-size:20px;font-weight:700;color:var(--accent)}
+  // create mini-grid for next piece (4x4)
+  for (let i = 0; i < 16; i++) {
+    const cell = document.createElement('div');
+    cell.classList.add('cell');
+    nextGrid.appendChild(cell);
+    miniSquares.push(cell);
+  }
 
-.mini-grid{
-  display:grid;
-  grid-template-columns:repeat(4,calc(var(--size) / 1.5));
-  gap:4px;
-  width:calc(4 * var(--size) / 1.5 + 12px);
-  margin-top:6px;
-}
-.mini-grid .cell{width:calc(var(--size) / 1.5);height:calc(var(--size) / 1.5);border-radius:6px}
+  // Tetrominoes (indexes relative to top-left of 4x)
+  const lTetromino = [
+    [1, width + 1, width * 2 + 1, 2],
+    [width, width + 1, width + 2, width * 2 + 2],
+    [1, width + 1, width * 2 + 1, width * 2],
+    [width, width * 2, width * 2 + 1, width * 2 + 2]
+  ];
 
-.controls{display:flex;gap:8px;justify-content:space-between}
-button{padding:8px 12px;border-radius:8px;border:0;background:var(--accent);color:#042033;font-weight:700;cursor:pointer}
-button:active{transform:translateY(1px)}
+  const zTetromino = [
+    [0, width, width + 1, width * 2 + 1],
+    [width + 1, width + 2, 1, 2],
+    [0, width, width + 1, width * 2 + 1],
+    [width + 1, width + 2, 1, 2]
+  ];
 
-.help{font-size:13px;color:var(--muted)}
-.help ul{margin:6px 0 0;padding-left:18px}
+  const tTetromino = [
+    [1, width, width + 1, width + 2],
+    [1, width + 1, width + 2, width * 2 + 1],
+    [width, width + 1, width + 2, width * 2 + 1],
+    [1, width, width + 1, width * 2 + 1]
+  ];
 
-.overlay{
-  position:fixed;left:0;right:0;top:0;bottom:0;
-  display:flex;align-items:center;justify-content:center;
-  backdrop-filter: blur(2px);
-  background:linear-gradient(180deg,rgba(2,6,12,0.6),rgba(2,8,18,0.7));
-  color:var(--text);font-size:28px;font-weight:700;
-}
-.hidden{display:none}
+  const oTetromino = [
+    [0, 1, width, width + 1],
+    [0, 1, width, width + 1],
+    [0, 1, width, width + 1],
+    [0, 1, width, width + 1]
+  ];
 
-/* colors for tetrominoes */
-.tet-o{background:#FFD43B;box-shadow:0 4px 12px rgba(255,196,0,0.25)}
-.tet-i{background:#3AD8FF;box-shadow:0 4px 12px rgba(58,216,255,0.12)}
-.tet-t{background:#A24DF6;box-shadow:0 4px 14px rgba(162,77,246,0.16)}
-.tet-s{background:#48E686;box-shadow:0 4px 14px rgba(72,230,134,0.12)}
-.tet-z{background:#FF6B6B;box-shadow:0 4px 14px rgba(255,107,107,0.12)}
-.tet-j{background:#3B82F6;box-shadow:0 4px 14px rgba(59,130,246,0.12)}
-.tet-l{background:#FF9B3B;box-shadow:0 4px 14px rgba(255,155,59,0.12)}
+  const iTetromino = [
+    [1, width + 1, width * 2 + 1, width * 3 + 1],
+    [width, width + 1, width + 2, width + 3],
+    [1, width + 1, width * 2 + 1, width * 3 + 1],
+    [width, width + 1, width + 2, width + 3]
+  ];
 
-.merged{opacity:0.98;border:1px solid rgba(0,0,0,0.08)}
+  const jTetromino = [
+    [2, width + 2, width * 2 + 2, width * 2 + 1],
+    [width, width + 1, width + 2, width * 2 + 2],
+    [1, width + 1, width * 2 + 1, 2],
+    [width, width * 2, width * 2 + 1, width * 2 + 2]
+  ];
+
+  const sTetromino = [
+    [1, width + 1, width + 2, width * 2 + 2],
+    [width + 1, width * 2 + 1, 0 + width * 1, 1],
+    [1, width + 1, width + 2, width * 2 + 2],
+    [width + 1, width * 2 + 1, 0 + width * 1, 1]
+  ];
+
+  const theTetrominoes = [
+    { shapes: lTetromino, class: 'tet-l' },
+    { shapes: zTetromino, class: 'tet-z' },
+    { shapes: tTetromino, class: 'tet-t' },
+    { shapes: oTetromino, class: 'tet-o' },
+    { shapes: iTetromino, class: 'tet-i' },
+    { shapes: jTetromino, class: 'tet-j' },
+    { shapes: sTetromino, class: 'tet-s' }
+  ];
+
+  // next and current indexes
+  let random = Math.floor(Math.random() * theTetrominoes.length);
+  let nextRandom = Math.floor(Math.random() * theTetrominoes.length);
+  let current = theTetrominoes[random].shapes[currentRotation];
+  let currentClass = theTetrominoes[random].class;
+
+  function draw() {
+    current.forEach(index => {
+      const pos = currentPosition + index;
+      if (squares[pos]) {
+        squares[pos].classList.add(currentClass);
+      }
+    });
+  }
+
+  function undraw() {
+    current.forEach(index => {
+      const pos = currentPosition + index;
+      if (squares[pos]) {
+        squares[pos].classList.remove(currentClass);
+      }
+    });
+  }
+
+  function validMove(position = currentPosition, rotation = currentRotation) {
+    const shape = theTetrominoes[random].shapes[rotation];
+    return shape.every(i => {
+      const pos = position + i;
+      const x = (pos % width + width) % width;
+      const y = Math.floor(pos / width);
+      // out of bounds bottom
+      if (y >= height) return false;
+      // collision with merged block
+      return !squares[pos] || !squares[pos].classList.contains('merged');
+    });
+  }
+
+  function moveDown() {
+    if (gameOver || isPaused) return;
+    undraw();
+    currentPosition += width;
+    if (!validMove()) {
+      currentPosition -= width;
+      freeze();
+    } else {
+      draw();
+    }
+  }
+
+  function freeze() {
+    current.forEach(i => {
+      const pos = currentPosition + i;
+      if (!squares[pos]) return;
+      squares[pos].classList.add('merged');
+      squares[pos].classList.add(currentClass);
+    });
+
+    // check for game over: pieces at top
+    if (currentPosition <= 3) {
+      endGame();
+      return;
+    }
+
+    // clear full rows
+    for (let row = 0; row < height; row++) {
+      const rowStart = row * width;
+      const rowIndices = Array.from({ length: width }, (_, i) => rowStart + i);
+      const isFull = rowIndices.every(idx => squares[idx].classList.contains('merged'));
+      if (isFull) {
+        // remove classes and shift
+        rowIndices.forEach(idx => {
+          squares[idx].className = 'cell';
+        });
+        // move everything above down
+        const removed = squares.splice(rowStart, width);
+        const newCells = removed.map(() => {
+          const cell = document.createElement('div');
+          cell.className = 'cell';
+          return cell;
+        });
+        // insert empty row at top
+        squares = newCells.concat(squares);
+        // re-render grid DOM
+        grid.innerHTML = '';
+        squares.forEach(s => grid.appendChild(s));
+        // rebind merged classes might be lost; ensure merged class persistence was handled by recreating empty cells
+        // (we recreated exact structure so pieces moved down)
+        // update score
+        linesCleared++;
+        score += 100 * level;
+        if (linesCleared % 10 === 0) {
+          level++;
+        }
+        scoreEl.textContent = score;
+        levelEl.textContent = level;
+      }
+    }
+
+    // next piece
+    random = nextRandom;
+    nextRandom = Math.floor(Math.random() * theTetrominoes.length);
+    currentRotation = 0;
+    currentPosition = 3;
+    current = theTetrominoes[random].shapes[currentRotation];
+    currentClass = theTetrominoes[random].class;
+
+    draw();
+    displayNext();
+  }
+
+  function moveLeft() {
+    if (gameOver || isPaused) return;
+    undraw();
+    const atLeftEdge = current.some(i => (currentPosition + i) % width === 0);
+    if (!atLeftEdge) currentPosition -= 1;
+    if (!validMove()) currentPosition += 1;
+    draw();
+  }
+
+  function moveRight() {
+    if (gameOver || isPaused) return;
+    undraw();
+    const atRightEdge = current.some(i => (currentPosition + i) % width === width - 1);
+    if (!atRightEdge) currentPosition += 1;
+    if (!validMove()) currentPosition -= 1;
+    draw();
+  }
+
+  function rotate() {
+    if (gameOver || isPaused) return;
+    undraw();
+    const nextRotation = (currentRotation + 1) % 4;
+    if (validMove(currentPosition, nextRotation)) {
+      currentRotation = nextRotation;
+      current = theTetrominoes[random].shapes[currentRotation];
+    } else {
+      // try wall kick (simple)
+      if (validMove(currentPosition - 1, nextRotation)) {
+        currentPosition -= 1;
+        currentRotation = nextRotation;
+        current = theTetrominoes[random].shapes[currentRotation];
+      } else if (validMove(currentPosition + 1, nextRotation)) {
+        currentPosition += 1;
+        currentRotation = nextRotation;
+        current = theTetrominoes[random].shapes[currentRotation];
+      }
+    }
+    draw();
+  }
+
+  function hardDrop() {
+    if (gameOver || isPaused) return;
+    undraw();
+    while (true) {
+      currentPosition += width;
+      if (!validMove()) {
+        currentPosition -= width;
+        break;
+      }
+    }
+    draw();
+    freeze();
+  }
+
+  function displayNext() {
+    // clear mini-grid
+    miniSquares.forEach(cell => {
+      cell.className = 'cell';
+    });
+    // draw nextRandom shape in mini grid (4x4)
+    const shape = theTetrominoes[nextRandom].shapes[0];
+    const cls = theTetrominoes[nextRandom].class;
+    // center in mini grid: use offset 5 to center shapes roughly
+    const offset = 1;
+    shape.forEach(idx => {
+      const pos = offset + idx;
+      if (miniSquares[pos]) miniSquares[pos].classList.add(cls);
+    });
+  }
+
+  function startGame() {
+    resetGrid();
+    score = 0;
+    level = 1;
+    linesCleared = 0;
+    isPaused = false;
+    gameOver = false;
+    scoreEl.textContent = score;
+    levelEl.textContent = level;
+    random = Math.floor(Math.random() * theTetrominoes.length);
+    nextRandom = Math.floor(Math.random() * theTetrominoes.length);
+    currentRotation = 0;
+    currentPosition = 3;
+    current = theTetrominoes[random].shapes[currentRotation];
+    currentClass = theTetrominoes[random].class;
+    draw();
+    displayNext();
+    clearInterval(timerId);
+    timerId = setInterval(moveDown, 800 - (level - 1) * 60);
+    message.classList.add('hidden');
+  }
+
+  function resetGrid() {
+    // rebuild grid cells
+    grid.innerHTML = '';
+    squares = [];
+    for (let i = 0; i < gridSize; i++) {
+      const cell = document.createElement('div');
+      cell.classList.add('cell');
+      grid.appendChild(cell);
+      squares.push(cell);
+    }
+  }
+
+  function pauseResume() {
+    if (gameOver) return;
+    isPaused = !isPaused;
+    if (isPaused) {
+      clearInterval(timerId);
+      message.textContent = 'Paused';
+      message.classList.remove('hidden');
+    } else {
+      timerId = setInterval(moveDown, Math.max(100, 800 - (level - 1) * 60));
+      message.classList.add('hidden');
+    }
+  }
+
+  function endGame() {
+    gameOver = true;
+    clearInterval(timerId);
+    message.textContent = `Game Over — Score: ${score}`;
+    message.classList.remove('hidden');
+  }
+
+  // controls
+  document.addEventListener('keydown', e => {
+    if (gameOver) return;
+    if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      moveLeft();
+    }
+    if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      moveRight();
+    }
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      // soft drop (faster)
+      undraw();
+      currentPosition += width;
+      if (!validMove()) {
+        currentPosition -= width;
+        freeze();
+      }
+      draw();
+    }
+    if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      rotate();
+    }
+    if (e.code === 'Space') {
+      e.preventDefault();
+      hardDrop();
+    }
+    if (e.key.toLowerCase() === 'p') {
+      pauseResume();
+    }
+  });
+
+  startBtn.addEventListener('click', () => {
+    startGame();
+    startBtn.blur();
+  });
+  pauseBtn.addEventListener('click', () => {
+    pauseResume();
+    pauseBtn.blur();
+  });
+
+  // initial display
+  displayNext();
+})();
