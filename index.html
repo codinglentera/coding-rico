@@ -1,1 +1,55 @@
-# 
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Tetris — Vanilla JS</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="wrap">
+    <h1>Tetris</h1>
+
+    <section class="game-area">
+      <div class="grid" id="grid"></div>
+
+      <aside class="sidebar">
+        <div class="panel">
+          <h2>Next</h2>
+          <div class="mini-grid" id="next-grid"></div>
+        </div>
+
+        <div class="panel">
+          <h2>Score</h2>
+          <div id="score">0</div>
+        </div>
+
+        <div class="panel">
+          <h2>Level</h2>
+          <div id="level">1</div>
+        </div>
+
+        <div class="controls">
+          <button id="start">Start</button>
+          <button id="pause">Pause</button>
+        </div>
+
+        <div class="help">
+          <h3>Controls</h3>
+          <ul>
+            <li>← → : Move</li>
+            <li>↑ : Rotate</li>
+            <li>↓ : Soft drop</li>
+            <li>Space : Hard drop</li>
+            <li>P : Pause</li>
+          </ul>
+        </div>
+      </aside>
+    </section>
+
+    <div id="message" class="overlay hidden"></div>
+  </main>
+
+  <script src="tetris.js"></script>
+</body>
+</html>
