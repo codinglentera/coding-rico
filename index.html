@@ -1,55 +1,114 @@
-<!doctype html>
-<html lang="en">
+<!DOCTYPE html>
+<html lang="id">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Tetris — Vanilla JS</title>
-  <link rel="stylesheet" href="styles.css" />
+  <meta charset="UTF-8">
+  <title>Tetris JS</title>
+  <style>
+    body {
+      background: #111;
+      color: white;
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    canvas {
+      background: #000;
+      border: 3px solid #fff;
+    }
+
+    .info {
+      margin-left: 20px;
+    }
+  </style>
 </head>
 <body>
-  <main class="wrap">
-    <h1>Tetris</h1>
 
-    <section class="game-area">
-      <div class="grid" id="grid"></div>
+<canvas id="tetris" width="240" height="400"></canvas>
 
-      <aside class="sidebar">
-        <div class="panel">
-          <h2>Next</h2>
-          <div class="mini-grid" id="next-grid"></div>
-        </div>
+<div class="info">
+  <h2>TETRIS</h2>
+  <p>⬅️ ➡️ : Gerak</p>
+  <p>⬆️ : Putar</p>
+  <p>⬇️ : Turun</p>
+  <p>Score: <span id="score">0</span></p>
+</div>
 
-        <div class="panel">
-          <h2>Score</h2>
-          <div id="score">0</div>
-        </div>
+<script>
+const canvas = document.getElementById('tetris');
+const ctx = canvas.getContext('2d');
+ctx.scale(20, 20);
 
-        <div class="panel">
-          <h2>Level</h2>
-          <div id="level">1</div>
-        </div>
+const arena = createMatrix(12, 20);
+const colors = [
+  null,
+  '#FF0D72',
+  '#0DC2FF',
+  '#0DFF72',
+  '#F538FF',
+  '#FF8E0D',
+  '#FFE138',
+  '#3877FF',
+];
 
-        <div class="controls">
-          <button id="start">Start</button>
-          <button id="pause">Pause</button>
-        </div>
+const player = {
+  pos: {x: 0, y: 0},
+  matrix: null,
+  score: 0
+};
 
-        <div class="help">
-          <h3>Controls</h3>
-          <ul>
-            <li>← → : Move</li>
-            <li>↑ : Rotate</li>
-            <li>↓ : Soft drop</li>
-            <li>Space : Hard drop</li>
-            <li>P : Pause</li>
-          </ul>
-        </div>
-      </aside>
-    </section>
+function createMatrix(w, h) {
+  const matrix = [];
+  while (h--) matrix.push(new Array(w).fill(0));
+  return matrix;
+}
 
-    <div id="message" class="overlay hidden"></div>
-  </main>
+function createPiece(type) {
+  if (type === 'T') return [[0,0,0],[1,1,1],[0,1,0]];
+  if (type === 'O') return [[2,2],[2,2]];
+  if (type === 'L') return [[0,3,0],[0,3,0],[0,3,3]];
+  if (type === 'J') return [[0,4,0],[0,4,0],[4,4,0]];
+  if (type === 'I') return [[0,5,0,0],[0,5,0,0],[0,5,0,0],[0,5,0,0]];
+  if (type === 'S') return [[0,6,6],[6,6,0],[0,0,0]];
+  if (type === 'Z') return [[7,7,0],[0,7,7],[0,0,0]];
+}
 
-  <script src="script.js"></script>
-</body>
-</html>
+function drawMatrix(matrix, offset) {
+  matrix.forEach((row, y) => {
+    row.forEach((value, x) => {
+      if (value !== 0) {
+        ctx.fillStyle = colors[value];
+        ctx.fillRect(x + offset.x, y + offset.y, 1, 1);
+      }
+    });
+  });
+}
+
+function merge(arena, player) {
+  player.matrix.forEach((row, y) => {
+    row.forEach((value, x) => {
+      if (value !== 0) {
+        arena[y + player.pos.y][x + player.pos.x] = value;
+      }
+    });
+  });
+}
+
+function collide(arena, player) {
+  const m = player.matrix;
+  const o = player.pos;
+  for (let y = 0; y < m.length; ++y) {
+    for (let x = 0; x < m[y].length; ++x) {
+      if (m[y][x] !== 0 &&
+         (arena[y + o.y] &&
+          arena[y + o.y][x + o.x]) !== 0) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+function rotate(matrix) {
