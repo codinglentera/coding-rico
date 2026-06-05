@@ -1,141 +1,101 @@
-const boardElement = document.getElementById("chessboard");
-const turnText = document.getElementById("turn");
+const grid = document.getElementById("grid");
+const movesDisplay = document.getElementById("moves");
 
-let selectedSquare = null;
-let currentTurn = "white";
+let size = 6;
+let moves = 15;
+let start = 0;
+let finish = size * size - 1;
 
-const pieces = {
-  r: "♜", n: "♞", b: "♝", q: "♛", k: "♚", p: "♟",
-  R: "♖", N: "♘", B: "♗", Q: "♕", K: "♔", P: "♙"
-};
+let cells = [];
 
-let board = [
-  ["r","n","b","q","k","b","n","r"],
-  ["p","p","p","p","p","p","p","p"],
-  ["","","","","","","",""],
-  ["","","","","","","",""],
-  ["","","","","","","",""],
-  ["","","","","","","",""],
-  ["P","P","P","P","P","P","P","P"],
-  ["R","N","B","Q","K","B","N","R"]
-];
+// buat grid
+function createGrid() {
+  grid.innerHTML = "";
+  cells = [];
 
-// ================= RENDER =================
-function renderBoard() {
-  boardElement.innerHTML = "";
-  board.forEach((row, y) => {
-    row.forEach((piece, x) => {
-      const square = document.createElement("div");
-      square.classList.add("square");
-      square.classList.add((x + y) % 2 === 0 ? "white" : "black");
-      square.dataset.x = x;
-      square.dataset.y = y;
-      square.textContent = pieces[piece] || "";
-      square.addEventListener("click", () => onSquareClick(x, y));
-      boardElement.appendChild(square);
-    });
-  });
-}
+  for (let i = 0; i < size * size; i++) {
+    const cell = document.createElement("div");
+    cell.classList.add("cell");
 
-// ================= LOGIC =================
-function onSquareClick(x, y) {
-  const piece = board[y][x];
+    if (i === start) cell.classList.add("start");
+    if (i === finish) cell.classList.add("finish");
 
-  if (selectedSquare) {
-    if (isValidMove(selectedSquare.x, selectedSquare.y, x, y)) {
-      movePiece(selectedSquare.x, selectedSquare.y, x, y);
-      currentTurn = currentTurn === "white" ? "black" : "white";
-      turnText.textContent = "Giliran: " + (currentTurn === "white" ? "Putih" : "Hitam");
+    // random block
+    if (Math.random() < 0.2 && i !== start && i !== finish) {
+      cell.classList.add("block");
     }
-    selectedSquare = null;
-    renderBoard();
-  } else if (piece && isCorrectTurn(piece)) {
-    selectedSquare = { x, y };
-    highlightSquare(x, y);
+
+    cell.addEventListener("click", () => handleClick(i));
+    grid.appendChild(cell);
+    cells.push(cell);
   }
 }
 
-function isCorrectTurn(piece) {
-  return currentTurn === "white"
-    ? piece === piece.toUpperCase()
-    : piece === piece.toLowerCase();
-}
+// klik untuk bikin jalur
+function handleClick(index) {
+  if (moves <= 0) return;
 
-function movePiece(fromX, fromY, toX, toY) {
-  board[toY][toX] = board[fromY][fromX];
-  board[fromY][fromX] = "";
-}
+  const cell = cells[index];
 
-// ================= MOVE VALIDATION =================
-function isValidMove(fx, fy, tx, ty) {
-  const piece = board[fy][fx];
-  if (!piece) return false;
+  if (cell.classList.contains("block") ||
+      cell.classList.contains("start") ||
+      cell.classList.contains("finish")) return;
 
-  const dx = tx - fx;
-  const dy = ty - fy;
-  const target = board[ty][tx];
-
-  if (target && isSameColor(piece, target)) return false;
-
-  switch (piece.toLowerCase()) {
-    case "p": return pawnMove(piece, fx, fy, tx, ty);
-    case "r": return rookMove(fx, fy, tx, ty);
-    case "n": return knightMove(dx, dy);
-    case "b": return bishopMove(fx, fy, tx, ty);
-    case "q": return rookMove(fx, fy, tx, ty) || bishopMove(fx, fy, tx, ty);
-    case "k": return Math.abs(dx) <= 1 && Math.abs(dy) <= 1;
+  if (!cell.classList.contains("path")) {
+    cell.classList.add("path");
+    moves--;
+    movesDisplay.textContent = moves;
   }
-  return false;
+
+  checkWin();
 }
 
-function pawnMove(piece, fx, fy, tx, ty) {
-  const dir = piece === piece.toUpperCase() ? -1 : 1;
-  if (fx === tx && board[ty][tx] === "" && ty === fy + dir) return true;
-  return false;
-}
+// cek jalur nyambung
+function checkWin() {
+  let visited = new Set();
 
-function rookMove(fx, fy, tx, ty) {
-  if (fx !== tx && fy !== ty) return false;
-  return clearPath(fx, fy, tx, ty);
-}
+  function dfs(index) {
+    if (index === finish) return true;
+    if (visited.has(index)) return false;
 
-function bishopMove(fx, fy, tx, ty) {
-  if (Math.abs(tx - fx) !== Math.abs(ty - fy)) return false;
-  return clearPath(fx, fy, tx, ty);
-}
+    visited.add(index);
 
-function knightMove(dx, dy) {
-  return (Math.abs(dx) === 2 && Math.abs(dy) === 1) ||
-         (Math.abs(dx) === 1 && Math.abs(dy) === 2);
-}
+    let neighbors = [
+      index - 1,
+      index + 1,
+      index - size,
+      index + size
+    ];
 
-function clearPath(fx, fy, tx, ty) {
-  const stepX = Math.sign(tx - fx);
-  const stepY = Math.sign(ty - fy);
-  let x = fx + stepX;
-  let y = fy + stepY;
-  while (x !== tx || y !== ty) {
-    if (board[y][x] !== "") return false;
-    x += stepX;
-    y += stepY;
-  }
-  return true;
-}
+    for (let n of neighbors) {
+      if (n >= 0 && n < size * size) {
+        let cell = cells[n];
 
-function isSameColor(a, b) {
-  return (a === a.toUpperCase()) === (b === b.toUpperCase());
-}
-
-// ================= UI =================
-function highlightSquare(x, y) {
-  renderBoard();
-  const squares = document.querySelectorAll(".square");
-  squares.forEach(s => {
-    if (s.dataset.x == x && s.dataset.y == y) {
-      s.classList.add("selected");
+        if (
+          cell.classList.contains("path") ||
+          cell.classList.contains("finish")
+        ) {
+          if (dfs(n)) return true;
+        }
+      }
     }
-  });
+
+    return false;
+  }
+
+  if (dfs(start)) {
+    setTimeout(() => {
+      alert("🎉 Kamu Menang!");
+      resetGame();
+    }, 100);
+  }
 }
 
-// ================= START =================
-renderBoard();
+// reset game
+function resetGame() {
+  moves = 15;
+  movesDisplay.textContent = moves;
+  createGrid();
+}
+
+createGrid();
