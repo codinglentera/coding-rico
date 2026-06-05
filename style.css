@@ -1,14 +1,14 @@
 body {
   text-align: center;
-  font-family: Arial;
-  background: #121212;
+  background: #0d1117;
   color: white;
+  font-family: Arial;
 }
 
 #grid {
   display: grid;
   grid-template-columns: repeat(6, 60px);
-  gap: 5px;
+  gap: 6px;
   justify-content: center;
   margin: 20px;
 }
@@ -16,22 +16,21 @@ body {
 .cell {
   width: 60px;
   height: 60px;
-  background: #333;
+  background: #161b22;
+  border: 2px solid #30363d;
   cursor: pointer;
+  position: relative;
 }
 
-.start {
-  background: green;
+.pipe {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
 }
 
-.finish {
-  background: red;
-}
-
-.path {
-  background: cyan;
-}
-
-.block {
-  background: black;
+.powered {
+  background: #238636 !important;
 }
