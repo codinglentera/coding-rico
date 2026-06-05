@@ -1,101 +1,92 @@
 const grid = document.getElementById("grid");
-const movesDisplay = document.getElementById("moves");
 
-let size = 6;
-let moves = 15;
-let start = 0;
-let finish = size * size - 1;
-
+const size = 6;
 let cells = [];
 
-// buat grid
-function createGrid() {
+// tipe jalur
+const types = [
+  "│", // vertical
+  "─", // horizontal
+  "└",
+  "┘",
+  "┌",
+  "┐",
+  "┼"
+];
+
+// buat grid random
+function generate() {
   grid.innerHTML = "";
   cells = [];
 
   for (let i = 0; i < size * size; i++) {
-    const cell = document.createElement("div");
+    let cell = document.createElement("div");
     cell.classList.add("cell");
 
-    if (i === start) cell.classList.add("start");
-    if (i === finish) cell.classList.add("finish");
+    let type = types[Math.floor(Math.random() * types.length)];
 
-    // random block
-    if (Math.random() < 0.2 && i !== start && i !== finish) {
-      cell.classList.add("block");
-    }
+    let pipe = document.createElement("div");
+    pipe.classList.add("pipe");
+    pipe.textContent = type;
 
-    cell.addEventListener("click", () => handleClick(i));
+    cell.appendChild(pipe);
+
+    cell.addEventListener("click", () => rotate(pipe));
+
     grid.appendChild(cell);
-    cells.push(cell);
-  }
-}
-
-// klik untuk bikin jalur
-function handleClick(index) {
-  if (moves <= 0) return;
-
-  const cell = cells[index];
-
-  if (cell.classList.contains("block") ||
-      cell.classList.contains("start") ||
-      cell.classList.contains("finish")) return;
-
-  if (!cell.classList.contains("path")) {
-    cell.classList.add("path");
-    moves--;
-    movesDisplay.textContent = moves;
+    cells.push(pipe);
   }
 
-  checkWin();
+  checkPower();
 }
 
-// cek jalur nyambung
-function checkWin() {
+// rotasi jalur
+function rotate(pipe) {
+  let order = ["│","└","─","┐","│","┘","─","┌"];
+
+  let current = pipe.textContent;
+  let next = order[(order.indexOf(current) + 1) % order.length];
+
+  pipe.textContent = next;
+
+  checkPower();
+}
+
+// cek koneksi listrik (DFS)
+function checkPower() {
+  cells.forEach(c => c.parentElement.classList.remove("powered"));
+
   let visited = new Set();
 
   function dfs(index) {
-    if (index === finish) return true;
-    if (visited.has(index)) return false;
-
+    if (visited.has(index)) return;
     visited.add(index);
 
+    let cell = cells[index];
+    cell.parentElement.classList.add("powered");
+
+    let x = index % size;
+    let y = Math.floor(index / size);
+
     let neighbors = [
-      index - 1,
-      index + 1,
-      index - size,
-      index + size
+      {i: index-1, cond: x>0},
+      {i: index+1, cond: x<size-1},
+      {i: index-size, cond: y>0},
+      {i: index+size, cond: y<size-1}
     ];
 
-    for (let n of neighbors) {
-      if (n >= 0 && n < size * size) {
-        let cell = cells[n];
-
-        if (
-          cell.classList.contains("path") ||
-          cell.classList.contains("finish")
-        ) {
-          if (dfs(n)) return true;
-        }
-      }
-    }
-
-    return false;
+    neighbors.forEach(n => {
+      if (n.cond) dfs(n.i);
+    });
   }
 
-  if (dfs(start)) {
+  dfs(0);
+
+  if (visited.size === size * size) {
     setTimeout(() => {
-      alert("🎉 Kamu Menang!");
-      resetGame();
+      alert("⚡ Semua terhubung! Kamu jenius!");
     }, 100);
   }
 }
 
-// reset game
-function resetGame() {
-  moves = 15;
-  movesDisplay.textContent = moves;
-  createGrid();
-}
-
-createGrid();
+generate();
