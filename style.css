@@ -1,45 +1,37 @@
 body {
-  background: #1e1e2f;
-  color: white;
-  font-family: Arial, sans-serif;
   text-align: center;
+  font-family: Arial;
+  background: #121212;
+  color: white;
 }
 
-h1 {
-  margin-bottom: 5px;
-}
-
-#chessboard {
-  width: 480px;
-  height: 480px;
-  margin: 20px auto;
+#grid {
   display: grid;
-  grid-template-columns: repeat(8, 1fr);
-  border: 4px solid #333;
+  grid-template-columns: repeat(6, 60px);
+  gap: 5px;
+  justify-content: center;
+  margin: 20px;
 }
 
-.square {
+.cell {
   width: 60px;
   height: 60px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  font-size: 36px;
+  background: #333;
   cursor: pointer;
 }
 
-.white {
-  background: #f0d9b5;
+.start {
+  background: green;
 }
 
-.black {
-  background: #b58863;
+.finish {
+  background: red;
 }
 
-.selected {
-  outline: 4px solid red;
+.path {
+  background: cyan;
 }
 
-.highlight {
-  background: #6fa8dc !important;
+.block {
+  background: black;
 }
